@@ -52,13 +52,13 @@ public class Puzzle extends Rectangle {
     }
     
     private void addTile(Tile [][] matrix, boolean type ) {//true=ending, starting=false 
+
         if(type){
             for (int i = 0; i < matrix.length; i++) {
                 for (int j = 0; j < matrix[0].length; j++) {
                     if (matrix[i][j] != null) {
                         matrix[i][j].setId(currentId);
                         matrix[i][j].moveHorizontal((((w)*TILE_SIZE+50+(j)*TILE_SIZE)-(j*TILE_SIZE)));
-                        matrix[i][j].propiedades();
                         matrix[i][j].setPosition((w+j)*TILE_SIZE+50,i*TILE_SIZE);
                         setTileEnding.put(currentId,new int[]{currentId});
                         currentId++;
@@ -114,8 +114,9 @@ public class Puzzle extends Rectangle {
                 setTileStarting.put(currentId, new int[]{currentId});  // Asocia el tile al conjunto
                 last = true;
                 matrixStarting[row][column].setId(currentId);
-                currentId++;
                 
+                currentId++;
+
                 if (this.isVisible){
                     newTile.makeVisible();
                 }
@@ -215,57 +216,75 @@ public class Puzzle extends Rectangle {
         this.isVisible=false;
     }
     
-    //public void print(Tile matrix[][]){
-      //7  for(int i=0;i<matrix.length;i++){
-         //   for(int)
-        //}
-    //}
+    private Tile getTile(int row, int column) {
+        // Verificar que las coordenadas estén dentro de los límites de la matriz
+        if (row >= 0 && row < h && column >= 0 && column < w) {
+            Tile possibleTile = matrixStarting[row][column];
+            return possibleTile;  // Puede ser un objeto Tile o null
+        }
+        return null;  // Si está fuera de los límites, devolver null
+    }
+
+
     
     public void relocateTile(int[] from, int[] to) {
         int fromRow = from[0];
         int fromColumn = from[1];
         int toRow = to[0];
         int toColumn = to[1];
-        // Obtener el ID de la ficha
-        int idTile = matrixStarting[fromRow][fromColumn].getId();
+        Tile tilePrincipal=getTile(fromRow,fromColumn);
         
-        if (idTile == -1) {
-            JOptionPane.showMessageDialog(null, "No hay tile para mover", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-    
-        // Obtener el conjunto de fichas pegadas
-        Integer keySetTile = findKeyByValue(idTile);
-        int[] tilesInSet = setTileStarting.get(keySetTile);
-    
-        // Verificar si todas las fichas del conjunto pueden moverse
-        for (int tileId : tilesInSet) {
-            Tile tile = getTileForId(tileId);
+        // Verificar si hay una ficha en la posición de origen
+        if (tilePrincipal != null) {
+            int idTile = tilePrincipal.getId();
             
-            int tileRow = tile.getRow();
-            int tileColumn = tile.getColumn();
-            int[] newCoordinates = canMoveTile(toRow, toColumn );
-            if (newCoordinates[0] == -1) {
-                //System.out.println(fromColumn + " " + tileColumn +" " + (fromColumn-tileColumn));
-                JOptionPane.showMessageDialog(null, "No se puede mover,fuera de los límites", "Error", JOptionPane.ERROR_MESSAGE);
-                return;  // Detener el proceso si alguna ficha no puede moverse
+            if (idTile == -1) {
+                JOptionPane.showMessageDialog(null, "No hay tile para mover", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
             }
-        }
-        
-        // Si todas pueden moverse, realizar el movimiento
-        for (int tileId : tilesInSet) {
-            Tile tile = getTileForId(tileId);
-            tile.makeInvisible();
-            int tileRow = tile.getRow();
-            int tileColumn = tile.getColumn();
-            tile.relocate(toRow - (fromRow - tileRow), toColumn - (fromColumn - tileColumn)); 
-            tile.propiedades();
-            tile.makeVisible();// Actualiza las coordenadas de la ficha
-              // Asegúrate de que la ficha sea visible
-        }
-        last=true;
-    }
     
+            // Obtener el conjunto de fichas pegadas
+            Integer keySetTile = findKeyByValue(idTile);
+            int[] tilesInSet = setTileStarting.get(keySetTile);
+    
+            // Verificar si todas las fichas del conjunto pueden moverse
+            for (int tileId : tilesInSet) {
+                Tile tile = getTileForId(tileId);
+                
+                int tileRow = tile.getRow();
+                int tileColumn = tile.getColumn();
+                int[] newCoordinates = canMoveTile(toRow - (fromRow - tileRow), toColumn - (fromColumn - tileColumn));
+            
+                if (newCoordinates[0] == -1) {
+                    JOptionPane.showMessageDialog(null, "No se puede mover, fuera de los límites", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;  // Detener el proceso si alguna ficha no puede moverse
+                }
+            }
+            
+            // Si todas pueden moverse, realizar el movimiento
+            for (int tileId : tilesInSet) {
+                Tile tile = getTileForId(tileId);
+                tile.makeInvisible();
+                
+                int tileRow = tile.getRow();
+                int tileColumn = tile.getColumn();
+                
+                // Mover cada ficha pegada a la nueva posición relativa
+                tile.relocate(toRow - (fromRow - tileRow), toColumn - (fromColumn - tileColumn)); 
+                //cambio las tiles en la matriz
+                matrixStarting[toRow - (fromRow - tileRow)][toColumn - (fromColumn - tileColumn)]=tile;
+                matrixStarting[tileRow][tileColumn]=null;
+                // Actualizar las propiedades visuales de la ficha
+                
+                tile.makeVisible();  // Hacer visible la ficha después de moverla
+            }
+  
+            last = true;  // Si todas las fichas se movieron con éxito
+        } else {
+            JOptionPane.showMessageDialog(null, "No hay tile en la posición de origen", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private Tile getTileForId(int id){
         for(int i=0; i<h;i++){
             for(int j=0;j<w;j++){
@@ -289,5 +308,5 @@ public class Puzzle extends Rectangle {
         }
         return new int[]{-1, -1};  // No es posible mover la ficha
     }
-    
+
 }
