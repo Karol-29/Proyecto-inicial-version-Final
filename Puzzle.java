@@ -108,6 +108,11 @@ public class Puzzle extends Rectangle {
     }
     
     public void addTile(int row, int column, String color) {
+        if (holes[row][column] != null) {
+            JOptionPane.showMessageDialog(null, "No se puede añadir una ficha donde ya existe un agujero.","Error",JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         // Verificar si la posición está dentro de los límites
         if (row >= 0 && row <= h-1 && column >= 0 && column <= w-1) {
             //verificar que la posicion este vacia
@@ -251,7 +256,11 @@ public class Puzzle extends Rectangle {
                 JOptionPane.showMessageDialog(null, "No hay tile para mover", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-    
+            if (holes[toRow][toColumn] != null) {
+            JOptionPane.showMessageDialog(null, "No se puede mover, hay un hueco es esta posicion.","Error",JOptionPane.ERROR_MESSAGE);
+            return;
+            }
+
             // Obtener el conjunto de fichas pegadas
             Integer keySetTile = findKeyByValue(idTile);
             int[] tilesInSet = setTileStarting.get(keySetTile);
@@ -262,6 +271,7 @@ public class Puzzle extends Rectangle {
                 
                 int tileRow = tile.getRow();
                 int tileColumn = tile.getColumn();
+                
                 int[] newCoordinates = canMoveTile(toRow - (fromRow - tileRow), toColumn - (fromColumn - tileColumn));
             
                 if (newCoordinates[0] == -1) {
