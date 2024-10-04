@@ -486,6 +486,35 @@ public class Puzzle extends Rectangle {
         
         JOptionPane.showMessageDialog(null, "Puzzles intercambiados exitosamente.");
     }
+    public int misPlacedTiles() {
+        int correctTiles = 0;
+        
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                if (matrixStarting[i][j] == null && matrixEnding[i][j] == null) {
+                    // Ambas posiciones vacías se consideran coincidentes
+                    correctTiles++;
+                } else if (matrixStarting[i][j] != null && matrixEnding[i][j] != null) {
+                    // Comparamos los colores de las baldosas
+                    String startingColor = matrixStarting[i][j].getColor();
+                    String endingColor = matrixEnding[i][j].getColor();
+                    if (startingColor.equals(endingColor)) {
+                        correctTiles++;
+                    }
+                }
+            }
+        }
+        
+        // Preparar mensaje para mostrar
+        String mensaje = String.format("Hay %d baldosas correctamente posicionadas de un total de %d posiciones.", 
+                                      correctTiles, h * w);
+        
+        // Mostrar el mensaje en una ventana
+        JOptionPane.showMessageDialog(null, mensaje, 
+            "Baldosas Correctamente Posicionadas", JOptionPane.INFORMATION_MESSAGE);
+        
+        return correctTiles;
+    }
 }
  // Si no encontramos diferencias, son iguales
 
