@@ -78,7 +78,7 @@ public class Puzzle extends Rectangle {
                         matrix[i][j].setId(currentId);
                         setTileStarting.put(currentId,new int[]{currentId});
                         currentId++;
-                        matrix[i][j].setPosition(j*TILE_SIZE,i*50);
+                        matrix[i][j].setPosition(j*TILE_SIZE,i*TILE_SIZE);
                         if(this.isVisible){
                             matrix[i][j].makeVisible();
                         }  
@@ -424,6 +424,67 @@ public class Puzzle extends Rectangle {
         JOptionPane.showMessageDialog(null, "La configuración actual no coincide con el objetivo. ¡Sigue intentando!");
     }
     return isEqual;
+    }
+    public void exchange() {
+        // Guardamos temporalmente la matriz starting
+        Tile[][] tempMatrix = new Tile[h][w];
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                tempMatrix[i][j] = matrixStarting[i][j];
+            }
+        }
+        
+        // Limpiamos las posiciones actuales
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                if (matrixStarting[i][j] != null) {
+                    matrixStarting[i][j].makeInvisible();
+                }
+                //hacemos invisibles las tiles de ending
+                if (matrixEnding[i][j] != null) {
+                    matrixEnding[i][j].makeInvisible();
+                }
+            }
+        }
+        
+        // Intercambiamos las matrices y ajustamos las posiciones
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                // Mover ending a starting
+                if (matrixEnding[i][j] != null) {
+                    matrixEnding[i][j].moveHorizontal(-(w*TILE_SIZE+50));
+                    matrixStarting[i][j] = matrixEnding[i][j];
+                    matrixStarting[i][j].setPosition(j*TILE_SIZE,i*TILE_SIZE);
+                } else {
+                    matrixStarting[i][j] = null;
+                }
+                
+                // Mover starting (temp) a ending
+                if (tempMatrix[i][j] != null) {
+                    tempMatrix[i][j].moveHorizontal(w*TILE_SIZE+50);
+                    matrixEnding[i][j] = tempMatrix[i][j];
+                    matrixEnding[i][j].setPosition((w+j)*TILE_SIZE+50,i*TILE_SIZE);
+                } else {
+                    matrixEnding[i][j] = null;
+                }
+            }
+        }
+        
+        // Hacemos visibles las nuevas posiciones si el puzzle está visible
+        if (this.isVisible) {
+            for (int i = 0; i < h; i++) {
+                for (int j = 0; j < w; j++) {
+                    if (matrixStarting[i][j] != null) {
+                        matrixStarting[i][j].makeVisible();
+                    }
+                    if (matrixEnding[i][j] != null) {
+                        matrixEnding[i][j].makeVisible();
+                    }
+                }
+            }
+        }
+        
+        JOptionPane.showMessageDialog(null, "Puzzles intercambiados exitosamente.");
     }
 }
  // Si no encontramos diferencias, son iguales
