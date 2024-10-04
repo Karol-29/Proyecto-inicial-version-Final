@@ -308,5 +308,26 @@ public class Puzzle extends Rectangle {
         }
         return new int[]{-1, -1};  // No es posible mover la ficha
     }
-
+    
+    
+    public char[][] actualArrangment(){
+        char [][] matrix= new char[h][w];
+        for(int i=0; i<h;i++){
+                for(int j=0;j<w;j++){
+                    if(matrixStarting[i][j]== null){
+                        matrix[i][j]='.';
+                    }else{
+                        String color=matrixStarting[i][j].getColor();
+                        matrix[i][j]=color.charAt(0);
+                }
+            }
+        }
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                System.out.print(matrix[i][j] + " ");  // Usar print para mantener la misma línea
+            }
+            System.out.println();  // Imprimir una nueva línea después de cada fila}
+            }
+        return matrix;
+}
 }
