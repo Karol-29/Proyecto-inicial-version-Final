@@ -110,6 +110,7 @@ public class Puzzle extends Rectangle {
     public void addTile(int row, int column, String color) {
         if (holes[row][column] != null) {
             JOptionPane.showMessageDialog(null, "No se puede añadir una ficha donde ya existe un agujero.","Error",JOptionPane.ERROR_MESSAGE);
+            last = false;
             return;
         }
 
@@ -120,11 +121,9 @@ public class Puzzle extends Rectangle {
                 Tile newTile = new Tile(column,row, color); 
                 matrixStarting[row][column]=newTile;
                 setTileStarting.put(currentId, new int[]{currentId});  // Asocia el tile al conjunto
-                last = true;
                 matrixStarting[row][column].setId(currentId);
-                
                 currentId++;
-
+                last = true;
                 if (this.isVisible){
                     newTile.makeVisible();
                 }
@@ -254,11 +253,13 @@ public class Puzzle extends Rectangle {
             
             if (idTile == -1) {
                 JOptionPane.showMessageDialog(null, "No hay tile para mover", "Error", JOptionPane.ERROR_MESSAGE);
+                last = false;
                 return;
             }
             if (holes[toRow][toColumn] != null) {
-            JOptionPane.showMessageDialog(null, "No se puede mover, hay un hueco es esta posicion.","Error",JOptionPane.ERROR_MESSAGE);
-            return;
+                JOptionPane.showMessageDialog(null, "No se puede mover, hay un hueco es esta posicion.","Error",JOptionPane.ERROR_MESSAGE);
+                last = false;
+                return;
             }
 
             // Obtener el conjunto de fichas pegadas
@@ -301,6 +302,7 @@ public class Puzzle extends Rectangle {
             last = true;  // Si todas las fichas se movieron con éxito
         } else {
             JOptionPane.showMessageDialog(null, "No hay tile en la posición de origen", "Error", JOptionPane.ERROR_MESSAGE);
+            last = false;
         }
     }
 
@@ -358,18 +360,21 @@ public class Puzzle extends Rectangle {
         // Verificar si la posición está dentro de los límites del puzzle
         if (row < 0 || row >= h || column < 0 || column >= w) {
             JOptionPane.showMessageDialog(null, "La posición está fuera de los límites.","Error",JOptionPane.ERROR_MESSAGE);
+            last = false;
             return;
         }
     
         // Verificar si ya existe una ficha en esta posición
         if (matrixStarting[row][column] != null) {
             JOptionPane.showMessageDialog(null, "No se puede crear un agujero donde ya existe una ficha.","Error",JOptionPane.ERROR_MESSAGE);
+            last = false;
             return;
         }
     
         // Verificar si ya existe un agujero en esta posición
         if (holes[row][column] != null) {
             JOptionPane.showMessageDialog(null, "Ya existe un agujero en esta posición.","Error",JOptionPane.ERROR_MESSAGE);
+            last = false;
             return;
         }
     
@@ -386,7 +391,7 @@ public class Puzzle extends Rectangle {
     
         // Añadir el agujero a nuestro array de agujeros
         holes[row][column] = hole;
-    
+        last = true;
         // Hacer visible el agujero si el puzzle está visible
         if (this.isVisible) {
             hole.makeVisible();
@@ -395,26 +400,25 @@ public class Puzzle extends Rectangle {
         JOptionPane.showMessageDialog(null, "Agujero creado en la fila " + row + ", columna " + column);
     }
     public boolean isGoal() {
-    boolean isEqual = true;  // Suponemos que inicialmente es verdadero
-
-    for (int i = 0; i < h; i++) {
-        for (int j = 0; j < w; j++) {
-            if (matrixStarting[i][j] == null && matrixEnding[i][j] == null) {
-                continue; // Ambos son null, seguimos
+        boolean isEqual = true;  // Suponemos que inicialmente es verdadero
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                if (matrixStarting[i][j] == null && matrixEnding[i][j] == null) {
+                    continue; // Ambos son null, seguimos
+                }
+                if ((matrixStarting[i][j] == null && matrixEnding[i][j] != null) || 
+                    (matrixStarting[i][j] != null && matrixEnding[i][j] == null)) {
+                    isEqual = false; // Encontramos una discrepancia
+                    break; // Salimos del bucle
+                }
+                if (!matrixStarting[i][j].getColor().equals(matrixEnding[i][j].getColor())) {
+                    isEqual = false; // Encontramos una discrepancia
+                    break; // Salimos del bucle
+                }
             }
-            if ((matrixStarting[i][j] == null && matrixEnding[i][j] != null) || 
-                (matrixStarting[i][j] != null && matrixEnding[i][j] == null)) {
-                isEqual = false; // Encontramos una discrepancia
-                break; // Salimos del bucle
+            if (!isEqual) {
+                break; // Salimos del bucle externo si ya hay una discrepancia
             }
-            if (!matrixStarting[i][j].getColor().equals(matrixEnding[i][j].getColor())) {
-                isEqual = false; // Encontramos una discrepancia
-                break; // Salimos del bucle
-            }
-        }
-        if (!isEqual) {
-            break; // Salimos del bucle externo si ya hay una discrepancia
-        }
     }
 
     // Mostramos el mensaje según el resultado
@@ -510,12 +514,50 @@ public class Puzzle extends Rectangle {
                                       correctTiles, h * w);
         
         // Mostrar el mensaje en una ventana
-        JOptionPane.showMessageDialog(null, mensaje, 
-            "Baldosas Correctamente Posicionadas", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(null, mensaje, "Baldosas Correctamente Posicionadas", JOptionPane.INFORMATION_MESSAGE);
         
         return correctTiles;
     }
+    
+    public boolean ok(){
+        JOptionPane.showMessageDialog(null, last, "Baldosas Correctamente Posicionadas", JOptionPane.INFORMATION_MESSAGE);
+        return last;
+    }
+    
+    public int[][] fixedTiles() {
+        int[][] tilesCorrect = new int[h][w];  // Inicializamos con ceros por defecto
+        //las baldosas correctas las representaremos con 1    
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                if (matrixStarting[i][j] == null && matrixEnding[i][j] == null){
+                    tilesCorrect[i][j] = 1;
+                }
+                if (matrixStarting[i][j] != null && matrixEnding[i][j] != null) {
+                    // Comparamos los colores de las baldosas
+                    String startingColor = matrixStarting[i][j].getColor();
+                    String endingColor = matrixEnding[i][j].getColor();
+    
+                    if (startingColor.equals(endingColor)) {
+                        tilesCorrect[i][j] = 1;  // Marcamos esta posición como "correcta"
+                    }
+                }
+            }
+        }
+        // Construimos un String que represente el arreglo tilesCorrect
+        StringBuilder mensaje = new StringBuilder("Baldosas Correctamente Posicionadas:\n");
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                mensaje.append(tilesCorrect[i][j]).append(" ");  // Añadimos cada valor
+            }
+            mensaje.append("\n");  // Nueva línea después de cada fila
+        }
+    
+        // Mostramos el mensaje en un JOptionPane
+        JOptionPane.showMessageDialog(null, mensaje.toString(), "Baldosas Correctamente Posicionadas", JOptionPane.INFORMATION_MESSAGE);
+    
+        return tilesCorrect;  // Retornamos el arreglo de baldosas correctas
+    }
 }
- // Si no encontramos diferencias, son iguales
+ 
 
 
