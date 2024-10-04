@@ -17,6 +17,8 @@ public class Puzzle extends Rectangle {
     public static final Map<String, String> COLORS;
     private Rectangle puzzleStarting;
     private Rectangle puzzleEnding;
+    private Circle [][] holes;
+    
     static {
         COLORS = new HashMap<>();
         COLORS.put("r", "red");
@@ -30,6 +32,7 @@ public class Puzzle extends Rectangle {
         setTileEnding= new HashMap<>();
         matrixStarting = new Tile[h][w];
         matrixEnding = new Tile[h][w];
+        holes= new Circle [h][w];
         this.h = h;
         this.w = w;
         this.isVisible = false;
@@ -197,6 +200,14 @@ public class Puzzle extends Rectangle {
                 }
             }
         }
+        //Para el metodo makeHole
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                if (holes[i][j] != null) {
+                    holes[i][j].makeVisible();
+                }
+            }
+        }
         this.isVisible=true;
     }
     
@@ -224,8 +235,6 @@ public class Puzzle extends Rectangle {
         }
         return null;  // Si está fuera de los límites, devolver null
     }
-
-
     
     public void relocateTile(int[] from, int[] to) {
         int fromRow = from[0];
@@ -322,12 +331,91 @@ public class Puzzle extends Rectangle {
                 }
             }
         }
-        for (int i = 0; i < h; i++) {
-            for (int j = 0; j < w; j++) {
-                System.out.print(matrix[i][j] + " ");  // Usar print para mantener la misma línea
+        StringBuilder visualMatrix = new StringBuilder("Configuración actual:\n"); // Concatena linea por linea y despues los une facherito como string
+        for (int i = 0; i < matrix.length; i++) {
+            for (int j = 0; j < matrix[i].length; j++) {
+                visualMatrix.append(matrix[i][j]).append(" ");
             }
-            System.out.println();  // Imprimir una nueva línea después de cada fila}
-            }
+            visualMatrix.append("\n");
+        }
+    
+        // Muestra la matriz en una ventana de diálogo
+        JOptionPane.showMessageDialog(null, visualMatrix.toString(),"Visualización de la Matriz", JOptionPane.INFORMATION_MESSAGE);
+    
         return matrix;
+    }
+    public void makeHole(int row, int column) {
+        // Verificar si la posición está dentro de los límites del puzzle
+        if (row < 0 || row >= h || column < 0 || column >= w) {
+            JOptionPane.showMessageDialog(null, "La posición está fuera de los límites.","Error",JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+    
+        // Verificar si ya existe una ficha en esta posición
+        if (matrixStarting[row][column] != null) {
+            JOptionPane.showMessageDialog(null, "No se puede crear un agujero donde ya existe una ficha.","Error",JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+    
+        // Verificar si ya existe un agujero en esta posición
+        if (holes[row][column] != null) {
+            JOptionPane.showMessageDialog(null, "Ya existe un agujero en esta posición.","Error",JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+    
+        // Crear un nuevo círculo para el agujero
+        Circle hole = new Circle();
+        hole.changeSize(TILE_SIZE);  // TILE_SIZE es el diámetro deseado
+        hole.changeColor("white");  // color según sea necesario
+    
+        // Posicionar el agujero
+        int xPosition = column *TILE_SIZE;
+        int yPosition = row *TILE_SIZE;
+        hole.moveHorizontal(xPosition);
+        hole.moveVertical(yPosition);
+    
+        // Añadir el agujero a nuestro array de agujeros
+        holes[row][column] = hole;
+    
+        // Hacer visible el agujero si el puzzle está visible
+        if (this.isVisible) {
+            hole.makeVisible();
+        }
+    
+        JOptionPane.showMessageDialog(null, "Agujero creado en la fila " + row + ", columna " + column);
+    }
+    public boolean isGoal() {
+    boolean isEqual = true;  // Suponemos que inicialmente es verdadero
+
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; j++) {
+            if (matrixStarting[i][j] == null && matrixEnding[i][j] == null) {
+                continue; // Ambos son null, seguimos
+            }
+            if ((matrixStarting[i][j] == null && matrixEnding[i][j] != null) || 
+                (matrixStarting[i][j] != null && matrixEnding[i][j] == null)) {
+                isEqual = false; // Encontramos una discrepancia
+                break; // Salimos del bucle
+            }
+            if (!matrixStarting[i][j].getColor().equals(matrixEnding[i][j].getColor())) {
+                isEqual = false; // Encontramos una discrepancia
+                break; // Salimos del bucle
+            }
+        }
+        if (!isEqual) {
+            break; // Salimos del bucle externo si ya hay una discrepancia
+        }
+    }
+
+    // Mostramos el mensaje según el resultado
+    if (isEqual) {
+        JOptionPane.showMessageDialog(null, "¡Felicitaciones! Has alcanzado la configuración objetivo.");
+    } else {
+        JOptionPane.showMessageDialog(null, "La configuración actual no coincide con el objetivo. ¡Sigue intentando!");
+    }
+    return isEqual;
+    }
 }
-}
+ // Si no encontramos diferencias, son iguales
+
+
