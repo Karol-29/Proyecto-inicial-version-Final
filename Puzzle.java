@@ -18,7 +18,7 @@ public class Puzzle extends Rectangle {
     private Rectangle puzzleStarting;
     private Rectangle puzzleEnding;
     private Circle [][] holes;
-    
+    private ArrayList<Line> glues;
     static {
         COLORS = new HashMap<>();
         COLORS.put("r", "red");
@@ -38,6 +38,7 @@ public class Puzzle extends Rectangle {
         this.isVisible = false;
         this.puzzleStarting=new Rectangle(h*TILE_SIZE,w*TILE_SIZE,0,0,"black");
         this.puzzleEnding=new Rectangle(h*TILE_SIZE,w*TILE_SIZE,w*TILE_SIZE+50,0,"white");
+        this.glues = new ArrayList<Line>();
     }
     
     public Puzzle(char[][] ending){
@@ -156,17 +157,19 @@ public class Puzzle extends Rectangle {
         // Verificar si la posición está dentro de los límites
         if (row >= 0 && row <= h-1 && column >= 0 && column <= w-1) {
             //verificar que la posicion este vacia
-            if(matrixStarting[row][column]==null){
+            if(matrixStarting[row][column] !=null){
                 int idTile=matrixStarting[row][column].getId();
-                ArrayList<Integer> adjacentTiles = new ArrayList<>();
-                adjacentTiles.add(matrixStarting[row+1][column].getId());
-                adjacentTiles.add(matrixStarting[row-1][column].getId());
-                adjacentTiles.add(matrixStarting[row][column+1].getId());
-                adjacentTiles.add(matrixStarting[row][column-1].getId());
-            for (int id : adjacentTiles) {
+                Tile tilePrincipal= getTile(row,column);
+                ArrayList<Tile> adjacentTiles = new ArrayList<>();
+                adjacentTiles.add(getTile(row+1,column));
+                adjacentTiles.add(getTile(row-1,column));
+                adjacentTiles.add(getTile(row,column+1));
+                adjacentTiles.add(getTile(row,column-1));
+            for (Tile tile: adjacentTiles) {
                 int setTilePrincipal = findKeyByValue(idTile);
                 int[] values = setTileStarting.get(setTilePrincipal);
-                if (id != -1) {
+                if (tile != null) {
+                    int id = tile.getId();
                     int setTileA = findKeyByValue(id);
                     int[] value = setTileStarting.get(setTileA);
                     int nombreConjunto = Math.min(setTilePrincipal, setTileA);
@@ -176,6 +179,14 @@ public class Puzzle extends Rectangle {
                     setTileStarting.put(setTilePrincipal, new int[]{});
                     setTileStarting.put(setTileA, new int[]{});
                     setTileStarting.put(nombreConjunto, nuevoConjunto);
+                    if(tile.getRow()==tilePrincipal.getRow()){
+                        int maximo=Math.max(tile.getRow(),tilePrincipal.getRow());
+                        Line line=new Line(maximo,tile.getColumn(),maximo-50,tile.getColumn());
+                        glues.add(line);
+                        if(isVisible){
+                            line.makeVisible();
+                        }
+                    }
                 }
             }
             last=true;
@@ -274,7 +285,13 @@ public class Puzzle extends Rectangle {
                 int tileColumn = tile.getColumn();
                 
                 int[] newCoordinates = canMoveTile(toRow - (fromRow - tileRow), toColumn - (fromColumn - tileColumn));
-            
+                
+            // Verificar si hay un hueco en la nueva posición
+                if (holes[toRow - (fromRow - tileRow)][toColumn - (fromColumn - tileColumn)] != null) {
+                JOptionPane.showMessageDialog(null, "No se puede mover, hay un hueco en esta posición.", "Error", JOptionPane.ERROR_MESSAGE);
+                last = false;
+                return;
+                }
                 if (newCoordinates[0] == -1) {
                     JOptionPane.showMessageDialog(null, "No se puede mover, fuera de los límites", "Error", JOptionPane.ERROR_MESSAGE);
                     return;  // Detener el proceso si alguna ficha no puede moverse
@@ -556,6 +573,35 @@ public class Puzzle extends Rectangle {
         JOptionPane.showMessageDialog(null, mensaje.toString(), "Baldosas Correctamente Posicionadas", JOptionPane.INFORMATION_MESSAGE);
     
         return tilesCorrect;  // Retornamos el arreglo de baldosas correctas
+    }
+    public void deleteTile(int row,int column){
+        if (row < 0 || row >= h || column < 0 || column >= w) {
+            JOptionPane.showMessageDialog(null, "La posición está fuera de los límites.","Error",JOptionPane.ERROR_MESSAGE);
+            last = false;
+            return;
+        }
+        Tile tile=getTile(row,column);
+        if (holes[row][column] != null) {
+            JOptionPane.showMessageDialog(null, "Es un hueco","Error",JOptionPane.ERROR_MESSAGE);
+            last = false;
+            return;
+        }
+        if (tile == null) {
+            JOptionPane.showMessageDialog(null, "No hay tile para eliminar.","Error",JOptionPane.ERROR_MESSAGE);
+            last = false;
+            return;
+        }
+        int idTile=tile.getId();
+        int idConjunto=findKeyByValue(idTile);
+        int [] conjunto=setTileStarting.get(idConjunto);
+        if (conjunto.length < 1) {
+            JOptionPane.showMessageDialog(null, "No se eliminar una tile pegada.","Error",JOptionPane.ERROR_MESSAGE);
+            last = false;
+            return;
+        }
+        matrixStarting[row][column].makeInvisible();
+        matrixStarting[row][column] = null;
+        setTileStarting.remove(idConjunto);
     }
 }
  
