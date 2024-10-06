@@ -19,6 +19,9 @@ public class Puzzle extends Rectangle {
     private Rectangle puzzleEnding;
     private Circle [][] holes;
     private ArrayList<Line> glues;
+    private int[][] tilesCorrect;
+    private ArrayList<Tile> gluedTiles;
+    private HashSet<Integer> processedSetIds; // almacenamos IDs únicos de conjuntos de fichas que ya han sido procesados.
     static {
         COLORS = new HashMap<>();
         COLORS.put("r", "red");
@@ -33,6 +36,9 @@ public class Puzzle extends Rectangle {
         matrixStarting = new Tile[h][w];
         matrixEnding = new Tile[h][w];
         holes= new Circle [h][w];
+        this.tilesCorrect = new int[h][w];
+        this.gluedTiles = new ArrayList<>();
+        this.processedSetIds = new HashSet<>();
         this.h = h;
         this.w = w;
         this.isVisible = false;
@@ -558,39 +564,7 @@ public class Puzzle extends Rectangle {
         return last;
     }
     
-    public int[][] fixedTiles() {
-        int[][] tilesCorrect = new int[h][w];  // Inicializamos con ceros por defecto
-        //las baldosas correctas las representaremos con 1    
-        for (int i = 0; i < h; i++) {
-            for (int j = 0; j < w; j++) {
-                if (matrixStarting[i][j] == null && matrixEnding[i][j] == null){
-                    tilesCorrect[i][j] = 1;
-                }
-                if (matrixStarting[i][j] != null && matrixEnding[i][j] != null) {
-                    // Comparamos los colores de las baldosas
-                    String startingColor = matrixStarting[i][j].getColor();
-                    String endingColor = matrixEnding[i][j].getColor();
     
-                    if (startingColor.equals(endingColor)) {
-                        tilesCorrect[i][j] = 1;  // Marcamos esta posición como "correcta"
-                    }
-                }
-            }
-        }
-        // Construimos un String que represente el arreglo tilesCorrect
-        StringBuilder mensaje = new StringBuilder("Baldosas Correctamente Posicionadas:\n");
-        for (int i = 0; i < h; i++) {
-            for (int j = 0; j < w; j++) {
-                mensaje.append(tilesCorrect[i][j]).append(" ");  // Añadimos cada valor
-            }
-            mensaje.append("\n");  // Nueva línea después de cada fila
-        }
-    
-        // Mostramos el mensaje en un JOptionPane
-        JOptionPane.showMessageDialog(null, mensaje.toString(), "Baldosas Correctamente Posicionadas", JOptionPane.INFORMATION_MESSAGE);
-    
-        return tilesCorrect;  // Retornamos el arreglo de baldosas correctas
-    }
     public void deleteTile(int row,int column){
         if (row < 0 || row >= h || column < 0 || column >= w) {
             JOptionPane.showMessageDialog(null, "La posición está fuera de los límites.","Error",JOptionPane.ERROR_MESSAGE);
@@ -740,6 +714,79 @@ public class Puzzle extends Rectangle {
         int idTile = tile.getId();
         int tileConjunto = findKeyByValue(idTile);
         return tileConjunto == idConjunto;
+    }
+    private void blinkTiles(ArrayList<Tile> tilesToBlink) {
+        boolean isVisible = true;
+        for (int i = 0; i < 6; i++) {
+            if (isVisible) {
+                for (Tile tile : tilesToBlink) {
+                    tile.makeInvisible();
+                }
+            } else {
+                for (Tile tile : tilesToBlink) {
+                    tile.makeVisible();
+                }
+            }
+            isVisible = !isVisible;
+            
+            puzzleStarting.makeVisible();
+            puzzleEnding.makeVisible();
+        }
+        
+        // Nos asegurar que todas las fichas quedan visibles al final
+        for (Tile tile : tilesToBlink) {
+            tile.makeVisible();
+        }
+    }   
+
+    public int[][] fixedTiles() {
+        StringBuilder mensaje = new StringBuilder();
+        tilesCorrect = new int[h][w];
+        
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                Tile currentTile = matrixStarting[i][j];
+                if (currentTile != null) {
+                    int tileId = currentTile.getId();
+                    int setId = findKeyByValue(tileId);
+                    
+                    if (!processedSetIds.contains(setId)) {
+                        int[] tilesInSet = setTileStarting.get(setId);
+                        
+                        if (tilesInSet != null && tilesInSet.length > 1) {
+                            processedSetIds.add(setId);
+                            
+                            for (int tileIdInSet : tilesInSet) {
+                                Tile tile = getTileForId(tileIdInSet);
+                                if (tile != null) {
+                                    gluedTiles.add(tile);
+                                    int row = tile.getRow();
+                                    int col = tile.getColumn();
+                                    tilesCorrect[row][col] = 1;
+                                    mensaje.append(String.format("(%d,%d) ", row, col));                                
+                                }
+                            }
+                            mensaje.append("\n");
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (gluedTiles.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Todas las baldosas se pueden mover.", 
+                                         "fixedTiles", JOptionPane.INFORMATION_MESSAGE);
+            return tilesCorrect;
+        }
+
+        // Mostrar el mensaje con las coordenadas
+        JOptionPane.showMessageDialog(null, mensaje.toString(), 
+                                     "fixedTiles", JOptionPane.INFORMATION_MESSAGE);
+
+        // Llamar al método de parpadeo
+        blinkTiles(gluedTiles);
+
+        return tilesCorrect;
     }
 }
  
