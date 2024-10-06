@@ -140,17 +140,18 @@ public class Puzzle extends Rectangle {
     }
     
     private int findKeyByValue(int id) {
-        for (int i = 0; i < h; i++) {
-            for (int j = 0; j < w; j++) {
-                if(matrixStarting[i][j] !=null){
-                int posibleTile = matrixStarting[i][j].getId();
-                // Verificar si coinciden tanto la fila como la columna
-                if (posibleTile== id) {
-                    return posibleTile;
+        for (Map.Entry<Integer, int[]> entry : setTileStarting.entrySet()) {
+            int key = entry.getKey();
+            int[] values = entry.getValue();
+    
+            // Busca el id en el arreglo de valores
+            for (int value : values) {
+                if (value == id) {
+                    return key;  // Retorna la clave si encuentra el ID en el arreglo
                 }
-            }}
+            }
         }
-        return -1;
+        return -1;  // Si no encuentra el ID en ninguno de los conjuntos, retorna -1
     }
     
     public void addGlue(int row, int column){
@@ -168,6 +169,8 @@ public class Puzzle extends Rectangle {
             for (Tile tile: adjacentTiles) {
                 int setTilePrincipal = findKeyByValue(idTile);
                 int[] values = setTileStarting.get(setTilePrincipal);
+                
+                
                 if (tile != null) {
                     int id = tile.getId();
                     int setTileA = findKeyByValue(id);
@@ -189,6 +192,7 @@ public class Puzzle extends Rectangle {
                     }
                 }
             }
+            
             last=true;
             }else{
                 JOptionPane.showMessageDialog(null, "No hay tile en la posición dada", "Error", JOptionPane.ERROR_MESSAGE);
@@ -200,8 +204,21 @@ public class Puzzle extends Rectangle {
             last=false;
             return;
         }
+    }
+    public void conjunto() {
+        for (int idTile : setTileStarting.keySet()) { 
+            int[] values = setTileStarting.get(idTile);
+            // Imprimir el idTile primero
+            System.out.print("idTile: " + idTile + " -> Values: ");
+            for (int value : values) {
+                // Imprimir cada valor del array
+                System.out.print(value + " ");
+            }
+            // Salto de línea después de imprimir todos los valores de un idTile
+            System.out.println();
         }
-    
+    }
+
     public void makeVisible(){
         puzzleStarting.makeVisible();
         puzzleEnding.makeVisible();
@@ -602,6 +619,127 @@ public class Puzzle extends Rectangle {
         matrixStarting[row][column].makeInvisible();
         matrixStarting[row][column] = null;
         setTileStarting.remove(idConjunto);
+    }
+    public void deleteGlue(int row, int column) {
+            // Verificar si la posición está dentro de los límites
+            if (row < 0 || row >= h || column < 0 || column >= w) {
+                JOptionPane.showMessageDialog(null, "Fuera de límites", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        
+            // Verificar que la posición contenga una tile
+            if (matrixStarting[row][column] == null) {
+                JOptionPane.showMessageDialog(null, "No hay tile en la posición dada", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        
+            Tile tilePrincipal = getTile(row, column);
+            int idTile = tilePrincipal.getId(); // Obtener el ID de la tile
+            int idConjunto = findKeyByValue(idTile); // Obtener el ID del conjunto donde está la tile
+            int[] conjunto = setTileStarting.get(idConjunto); // Obtener las tiles del conjunto
+        
+            if (conjunto.length <= 1) {
+                JOptionPane.showMessageDialog(null, "No hay baldosas pegadas", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            for(int id:conjunto){
+                setTileStarting.put(id,new int[]{id});
+            }
+            // Separa solo las tiles adyacentes al tile seleccionado
+            List<int[]> adjacentPairs=findAdjacentPairs(idTile,conjunto);
+            for (int[] array : adjacentPairs) {
+                if(array[0]!=idTile && array[1]!=idTile){
+                    addGlueSecond(array[0],array[1]);
+                }
+            }
+            JOptionPane.showMessageDialog(null, "Las tiles adyacentes han sido separadas", "Info", JOptionPane.INFORMATION_MESSAGE);
+        }
+
+// Método que verifica si dos tiles son adyacentes
+    private boolean areTilesAdjacent(int id1, int id2) {
+        Tile tile1 = getTileForId(id1); // Obtener la tile por ID
+        Tile tile2 = getTileForId(id2);
+
+    // Comprobar si las tiles son adyacentes (vertical y horizontal)
+        return (Math.abs(tile1.getRow() - tile2.getRow()) == 1 && tile1.getColumn() == tile2.getColumn()) || // Adyacencia vertical
+               (Math.abs(tile1.getColumn() - tile2.getColumn()) == 1 && tile1.getRow() == tile2.getRow()); // Adyacencia horizontal
+    }
+
+    private void addGlueSecond(int idTile1, int idTile2){
+        Tile tile1=getTileForId(idTile1);
+        Tile tile2=getTileForId(idTile2);
+        boolean areAdyacent=areTilesAdjacent(idTile1,idTile2);
+        if(areAdyacent){
+            int setTilePrincipal = findKeyByValue(idTile1);
+            int[] values = setTileStarting.get(setTilePrincipal);
+            int id = idTile2;
+            int setTileA = findKeyByValue(id);
+            int[] value = setTileStarting.get(setTileA);
+            int nombreConjunto = Math.min(setTilePrincipal, setTileA);
+            int[] nuevoConjunto = new int[values.length + value.length];
+            System.arraycopy(values, 0, nuevoConjunto, 0, values.length);
+            System.arraycopy(value, 0, nuevoConjunto, values.length, value.length);
+            setTileStarting.put(setTilePrincipal, new int[]{});
+            setTileStarting.put(setTileA, new int[]{});
+            setTileStarting.put(nombreConjunto, nuevoConjunto);
+        }
+    }
+    private List<int[]> findAdjacentPairs(int idTile, int[] conjunto) {
+        List<int[]> adjacentPairs = new ArrayList<>(); // Lista para almacenar las parejas adyacentes
+        Set<String> seenPairs = new HashSet<>(); // Conjunto para rastrear pares vistos
+    
+        // Buscar el conjunto donde está idTile
+        int idConjunto = findKeyByValue(idTile);
+        
+        // Recorrer el conjunto
+        for (int i = 0; i < conjunto.length; i++) {
+            Tile currentTile = getTileForId(conjunto[i]); // Obtener la tile actual
+    
+            int row = currentTile.getRow(); 
+            int column = currentTile.getColumn();
+    
+            // Verificar las tiles adyacentes (arriba, abajo, izquierda, derecha)
+            Tile topTile = getTile(row - 1, column);
+            Tile bottomTile = getTile(row + 1, column);
+            Tile leftTile = getTile(row, column - 1);
+            Tile rightTile = getTile(row, column + 1);
+    
+            // Revisar si las tiles adyacentes están en el mismo conjunto
+            if (topTile != null && isInSameConjunto(topTile, idConjunto)) {
+                String pairKey = conjunto[i] < topTile.getId() ? conjunto[i] + "," + topTile.getId() : topTile.getId() + "," + conjunto[i];
+                if (!seenPairs.contains(pairKey)) {
+                    adjacentPairs.add(new int[]{conjunto[i], topTile.getId()});
+                    seenPairs.add(pairKey); // Agregar par al conjunto
+                }
+            }
+            if (bottomTile != null && isInSameConjunto(bottomTile, idConjunto)) {
+                String pairKey = conjunto[i] < bottomTile.getId() ? conjunto[i] + "," + bottomTile.getId() : bottomTile.getId() + "," + conjunto[i];
+                if (!seenPairs.contains(pairKey)) {
+                    adjacentPairs.add(new int[]{conjunto[i], bottomTile.getId()});
+                    seenPairs.add(pairKey); // Agregar par al conjunto
+                }
+            }
+            if (leftTile != null && isInSameConjunto(leftTile, idConjunto)) {
+                String pairKey = conjunto[i] < leftTile.getId() ? conjunto[i] + "," + leftTile.getId() : leftTile.getId() + "," + conjunto[i];
+                if (!seenPairs.contains(pairKey)) {
+                    adjacentPairs.add(new int[]{conjunto[i], leftTile.getId()});
+                    seenPairs.add(pairKey); // Agregar par al conjunto
+                }
+            }
+            if (rightTile != null && isInSameConjunto(rightTile, idConjunto)) {
+                String pairKey = conjunto[i] < rightTile.getId() ? conjunto[i] + "," + rightTile.getId() : rightTile.getId() + "," + conjunto[i];
+                if (!seenPairs.contains(pairKey)) {
+                    adjacentPairs.add(new int[]{conjunto[i], rightTile.getId()});
+                    seenPairs.add(pairKey); // Agregar par al conjunto
+                }
+            }
+        }    
+        return adjacentPairs;
+    }
+    private boolean isInSameConjunto(Tile tile, int idConjunto) {
+        int idTile = tile.getId();
+        int tileConjunto = findKeyByValue(idTile);
+        return tileConjunto == idConjunto;
     }
 }
  
