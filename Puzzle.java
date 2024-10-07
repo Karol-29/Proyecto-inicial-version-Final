@@ -95,34 +95,16 @@ public class Puzzle extends Rectangle {
         }
     }
     
-    private Tile[][] convertir(char[][] matrix) {
-        Tile[][] convertida = new Tile[h][w];
-        for (int i = 0; i < matrix.length; i++) {
-            for (int j = 0; j < matrix[i].length; j++) {
-                if (matrix[i][j] == '.') {
-                    convertida[i][j] = null; // Si es '*', se deja como null
-                } else {
-                    String color = COLORS.get(String.valueOf(matrix[i][j])); // Obtener color del mapa
-                    if (color != null) {
-                        convertida[i][j] = new Tile(j, i, color); // Crear nueva Tile con el color adecuado
-                    } else {
-                        convertida[i][j] = new Tile(i, j, "white"); // Si no hay color en el mapa, asignar un color por defecto
-                    }
-                }
-            }
-        }
-        return convertida; // Retornar la matriz convertida
-    }
-    
     public void addTile(int row, int column, String color) {
-        if (holes[row][column] != null) {
+        
+        // Verificar si la posición está dentro de los límites
+        if (row >= 0 && row <= h-1 && column >= 0 && column <= w-1) {
+            if (holes[row][column] != null) {
             JOptionPane.showMessageDialog(null, "No se puede añadir una ficha donde ya existe un agujero.","Error",JOptionPane.ERROR_MESSAGE);
             last = false;
             return;
-        }
+            }
 
-        // Verificar si la posición está dentro de los límites
-        if (row >= 0 && row <= h-1 && column >= 0 && column <= w-1) {
             //verificar que la posicion este vacia
             if(matrixStarting[row][column]==null){
                 Tile newTile = new Tile(column,row, color); 
@@ -144,7 +126,6 @@ public class Puzzle extends Rectangle {
             last = false;
         }
     }
-    
     private int findKeyByValue(int id) {
         for (Map.Entry<Integer, int[]> entry : setTileStarting.entrySet()) {
             int key = entry.getKey();
@@ -211,6 +192,7 @@ public class Puzzle extends Rectangle {
             return;
         }
     }
+    
     public void conjunto() {
         for (int idTile : setTileStarting.keySet()) { 
             int[] values = setTileStarting.get(idTile);
@@ -265,7 +247,7 @@ public class Puzzle extends Rectangle {
         this.isVisible=false;
     }
     
-    private Tile getTile(int row, int column) {
+    Tile getTile(int row, int column) {
         // Verificar que las coordenadas estén dentro de los límites de la matriz
         if (row >= 0 && row < h && column >= 0 && column < w) {
             Tile possibleTile = matrixStarting[row][column];
@@ -370,7 +352,6 @@ public class Puzzle extends Rectangle {
         return new int[]{-1, -1};  // No es posible mover la ficha
     }
     
-    
     public char[][] actualArrangment(){
         char [][] matrix= new char[h][w];
         for(int i=0; i<h;i++){
@@ -469,6 +450,7 @@ public class Puzzle extends Rectangle {
     }
     return isEqual;
     }
+    
     public void exchange() {
         // Guardamos temporalmente la matriz starting
         Tile[][] tempMatrix = new Tile[h][w];
@@ -530,6 +512,7 @@ public class Puzzle extends Rectangle {
         
         JOptionPane.showMessageDialog(null, "Puzzles intercambiados exitosamente.");
     }
+    
     public int misPlacedTiles() {
         int correctTiles = 0;
         
@@ -594,71 +577,112 @@ public class Puzzle extends Rectangle {
         matrixStarting[row][column] = null;
         setTileStarting.remove(idConjunto);
     }
+    
     public void deleteGlue(int row, int column) {
-            // Verificar si la posición está dentro de los límites
-            if (row < 0 || row >= h || column < 0 || column >= w) {
-                JOptionPane.showMessageDialog(null, "Fuera de límites", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
+        // Verificar si la posición está dentro de los límites del puzzle
+        if (row < 0 || row >= h || column < 0 || column >= w) {
+            JOptionPane.showMessageDialog(null, "Fuera de límites", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+    
+        // Verificar que la posición contenga una tile
+        if (matrixStarting[row][column] == null) {
+            JOptionPane.showMessageDialog(null, "No hay tile en la posición dada", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+    
+        // Obtener la tile en la posición dada
+        Tile tilePrincipal = getTile(row, column);
+        int idTile = tilePrincipal.getId(); // Obtener el ID de la tile
+        int idConjunto = findKeyByValue(idTile); // Obtener el ID del conjunto donde está la tile
+        int[] conjunto = setTileStarting.get(idConjunto); // Obtener las tiles del conjunto
+        System.out.println(idTile+"principal");
+        // Si solo hay una tile en el conjunto, no hay nada que separar
+        if (conjunto.length <= 1) {
+            JOptionPane.showMessageDialog(null, "No hay baldosas pegadas", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+    
+        // Separar las tiles actuales creando conjuntos individuales para cada tile
+        for (int id : conjunto) {
+            System.out.println(id);
+            setTileStarting.put(id, new int[]{id}); // Cada tile ahora está en su propio conjunto
+        }
+    
+        // Buscar pares adyacentes que no incluyen el tile seleccionado y volverlos a pegar
+        List<int[]> adjacentPairs = findAdjacentPairs(idTile, conjunto);
+        for (int[] pair : adjacentPairs) {
+            System.out.print("Pair: ");
+            
+            // Recorremos los elementos del int[]
+            for (int id : pair) {
+                System.out.print(id + " ");
             }
+            
+            System.out.println(); // Salto de línea después de imprimir cada par
+        }
+
+        for (int[] array : adjacentPairs) {
+            // Si ambos tiles no incluyen el idTile, los volvemos a pegar
+            if (array[0] != idTile && array[1] != idTile) {
+                addGlueSecond(array[0], array[1]);
+            }
+        }
+    
+        // Mostrar mensaje de éxito
+        JOptionPane.showMessageDialog(null, "Las tiles adyacentes han sido separadas", "Info", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public int[][] fixedTiles() {
+        StringBuilder mensaje = new StringBuilder();
+        tilesCorrect = new int[h][w];
         
-            // Verificar que la posición contenga una tile
-            if (matrixStarting[row][column] == null) {
-                JOptionPane.showMessageDialog(null, "No hay tile en la posición dada", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-        
-            Tile tilePrincipal = getTile(row, column);
-            int idTile = tilePrincipal.getId(); // Obtener el ID de la tile
-            int idConjunto = findKeyByValue(idTile); // Obtener el ID del conjunto donde está la tile
-            int[] conjunto = setTileStarting.get(idConjunto); // Obtener las tiles del conjunto
-        
-            if (conjunto.length <= 1) {
-                JOptionPane.showMessageDialog(null, "No hay baldosas pegadas", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            for(int id:conjunto){
-                setTileStarting.put(id,new int[]{id});
-            }
-            // Separa solo las tiles adyacentes al tile seleccionado
-            List<int[]> adjacentPairs=findAdjacentPairs(idTile,conjunto);
-            for (int[] array : adjacentPairs) {
-                if(array[0]!=idTile && array[1]!=idTile){
-                    addGlueSecond(array[0],array[1]);
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                Tile currentTile = matrixStarting[i][j];
+                if (currentTile != null) {
+                    int tileId = currentTile.getId();
+                    int setId = findKeyByValue(tileId);
+                    
+                    if (!processedSetIds.contains(setId)) {
+                        int[] tilesInSet = setTileStarting.get(setId);
+                        
+                        if (tilesInSet != null && tilesInSet.length > 1) {
+                            processedSetIds.add(setId);
+                            
+                            for (int tileIdInSet : tilesInSet) {
+                                Tile tile = getTileForId(tileIdInSet);
+                                if (tile != null) {
+                                    gluedTiles.add(tile);
+                                    int row = tile.getRow();
+                                    int col = tile.getColumn();
+                                    tilesCorrect[row][col] = 1;
+                                    mensaje.append(String.format("(%d,%d) ", row, col));                                
+                                }
+                            }
+                            mensaje.append("\n");
+                        }
+                    }
                 }
             }
-            JOptionPane.showMessageDialog(null, "Las tiles adyacentes han sido separadas", "Info", JOptionPane.INFORMATION_MESSAGE);
+        }
+        
+        if (gluedTiles.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Todas las baldosas se pueden mover.", 
+                                         "fixedTiles", JOptionPane.INFORMATION_MESSAGE);
+            return tilesCorrect;
         }
 
-// Método que verifica si dos tiles son adyacentes
-    private boolean areTilesAdjacent(int id1, int id2) {
-        Tile tile1 = getTileForId(id1); // Obtener la tile por ID
-        Tile tile2 = getTileForId(id2);
+        // Mostrar el mensaje con las coordenadas
+        JOptionPane.showMessageDialog(null, mensaje.toString(), 
+                                     "fixedTiles", JOptionPane.INFORMATION_MESSAGE);
 
-    // Comprobar si las tiles son adyacentes (vertical y horizontal)
-        return (Math.abs(tile1.getRow() - tile2.getRow()) == 1 && tile1.getColumn() == tile2.getColumn()) || // Adyacencia vertical
-               (Math.abs(tile1.getColumn() - tile2.getColumn()) == 1 && tile1.getRow() == tile2.getRow()); // Adyacencia horizontal
-    }
+        // Llamar al método de parpadeo
+        blinkTiles(gluedTiles);
 
-    private void addGlueSecond(int idTile1, int idTile2){
-        Tile tile1=getTileForId(idTile1);
-        Tile tile2=getTileForId(idTile2);
-        boolean areAdyacent=areTilesAdjacent(idTile1,idTile2);
-        if(areAdyacent){
-            int setTilePrincipal = findKeyByValue(idTile1);
-            int[] values = setTileStarting.get(setTilePrincipal);
-            int id = idTile2;
-            int setTileA = findKeyByValue(id);
-            int[] value = setTileStarting.get(setTileA);
-            int nombreConjunto = Math.min(setTilePrincipal, setTileA);
-            int[] nuevoConjunto = new int[values.length + value.length];
-            System.arraycopy(values, 0, nuevoConjunto, 0, values.length);
-            System.arraycopy(value, 0, nuevoConjunto, values.length, value.length);
-            setTileStarting.put(setTilePrincipal, new int[]{});
-            setTileStarting.put(setTileA, new int[]{});
-            setTileStarting.put(nombreConjunto, nuevoConjunto);
-        }
+        return tilesCorrect;
     }
-    private List<int[]> findAdjacentPairs(int idTile, int[] conjunto) {
+    public List<int[]> findAdjacentPairs(int idTile, int[] conjunto) {
         List<int[]> adjacentPairs = new ArrayList<>(); // Lista para almacenar las parejas adyacentes
         Set<String> seenPairs = new HashSet<>(); // Conjunto para rastrear pares vistos
     
@@ -710,6 +734,26 @@ public class Puzzle extends Rectangle {
         }    
         return adjacentPairs;
     }
+    public void addGlueSecond(int idTile1, int idTile2){
+        Tile tile1=getTileForId(idTile1);
+        Tile tile2=getTileForId(idTile2);
+        boolean areAdyacent=areTilesAdjacent(idTile1,idTile2);
+        if(areAdyacent){
+            int setTilePrincipal = findKeyByValue(idTile1);
+            int[] values = setTileStarting.get(setTilePrincipal);
+            int id = idTile2;
+            int setTileA = findKeyByValue(id);
+            int[] value = setTileStarting.get(setTileA);
+            int nombreConjunto = Math.min(setTilePrincipal, setTileA);
+            int[] nuevoConjunto = new int[values.length + value.length];
+            System.arraycopy(values, 0, nuevoConjunto, 0, values.length);
+            System.arraycopy(value, 0, nuevoConjunto, values.length, value.length);
+            setTileStarting.put(setTilePrincipal, new int[]{});
+            setTileStarting.put(setTileA, new int[]{});
+            setTileStarting.put(nombreConjunto, nuevoConjunto);
+        }
+    }
+    
     private boolean isInSameConjunto(Tile tile, int idConjunto) {
         int idTile = tile.getId();
         int tileConjunto = findKeyByValue(idTile);
@@ -737,56 +781,376 @@ public class Puzzle extends Rectangle {
         for (Tile tile : tilesToBlink) {
             tile.makeVisible();
         }
-    }   
+    }
+    
+    // Método que verifica si dos tiles son adyacentes
+    private boolean areTilesAdjacent(int id1, int id2) {
+        Tile tile1 = getTileForId(id1); // Obtener la tile por ID
+        Tile tile2 = getTileForId(id2);
 
-    public int[][] fixedTiles() {
-        StringBuilder mensaje = new StringBuilder();
-        tilesCorrect = new int[h][w];
+    // Comprobar si las tiles son adyacentes (vertical y horizontal)
+        return (Math.abs(tile1.getRow() - tile2.getRow()) == 1 && tile1.getColumn() == tile2.getColumn()) || // Adyacencia vertical
+               (Math.abs(tile1.getColumn() - tile2.getColumn()) == 1 && tile1.getRow() == tile2.getRow()); // Adyacencia horizontal
+    }
+    private Tile[][] convertir(char[][] matrix) {
+        Tile[][] convertida = new Tile[h][w];
+        for (int i = 0; i < matrix.length; i++) {
+            for (int j = 0; j < matrix[i].length; j++) {
+                if (matrix[i][j] == '.') {
+                    convertida[i][j] = null; // Si es '*', se deja como null
+                } else {
+                    String color = COLORS.get(String.valueOf(matrix[i][j])); // Obtener color del mapa
+                    if (color != null) {
+                        convertida[i][j] = new Tile(j, i, color); // Crear nueva Tile con el color adecuado
+                    } else {
+                        convertida[i][j] = new Tile(i, j, "white"); // Si no hay color en el mapa, asignar un color por defecto
+                    }
+                }
+            }
+        }
+        return convertida; // Retornar la matriz convertida
+    }
+    public void tilt(char direction) {
+        // Validar la dirección
+        if (direction != 'N' && direction != 'S' && direction != 'E' && direction != 'W') {
+            JOptionPane.showMessageDialog(null, "Dirección inválida. Use N, S, E, o W", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+    
+        boolean[][] processed = new boolean[h][w];
         
-        for (int i = 0; i < h; i++) {
+        // Configurar el orden de procesamiento según la dirección
+        if (direction == 'N' || direction == 'S') {
+            processTiltVertical(direction, processed);
+        } else {
+            processTiltHorizontal(direction, processed);
+        }
+    }
+    
+    private void processTiltVertical(char direction, boolean[][] processed) {
+        int startI = (direction == 'N') ? 0 : h - 1;
+        int endI = (direction == 'N') ? h : -1;
+        int stepI = (direction == 'N') ? 1 : -1;
+    
+        // Primero, identificar todos los conjuntos de tiles pegadas
+        HashMap<Integer, ArrayList<Tile>> setGroups = new HashMap<>();
+        ArrayList<ArrayList<Tile>> orderedGroups = new ArrayList<>();
+    
+        // Agrupar las tiles por conjuntos y mantener el orden
+        for (int i = startI; i != endI; i += stepI) {
             for (int j = 0; j < w; j++) {
-                Tile currentTile = matrixStarting[i][j];
-                if (currentTile != null) {
-                    int tileId = currentTile.getId();
-                    int setId = findKeyByValue(tileId);
+                if (matrixStarting[i][j] != null && !processed[i][j]) {
+                    Tile tile = matrixStarting[i][j];
+                    int setId = findKeyByValue(tile.getId());
                     
-                    if (!processedSetIds.contains(setId)) {
-                        int[] tilesInSet = setTileStarting.get(setId);
-                        
-                        if (tilesInSet != null && tilesInSet.length > 1) {
-                            processedSetIds.add(setId);
-                            
-                            for (int tileIdInSet : tilesInSet) {
-                                Tile tile = getTileForId(tileIdInSet);
-                                if (tile != null) {
-                                    gluedTiles.add(tile);
-                                    int row = tile.getRow();
-                                    int col = tile.getColumn();
-                                    tilesCorrect[row][col] = 1;
-                                    mensaje.append(String.format("(%d,%d) ", row, col));                                
-                                }
-                            }
-                            mensaje.append("\n");
-                        }
+                    if (!setGroups.containsKey(setId)) {
+                        ArrayList<Tile> newGroup = new ArrayList<>();
+                        setGroups.put(setId, newGroup);
+                        orderedGroups.add(newGroup);
+                    }
+                    
+                    ArrayList<Tile> group = setGroups.get(setId);
+                    if (!group.contains(tile)) {
+                        group.add(tile);
+                    }
+                }
+            }
+        }
+    
+        // Procesar los grupos en el orden correcto
+        for (ArrayList<Tile> tileGroup : orderedGroups) {
+            if (tileGroup.size() == 1) {
+                // Mover tile individual
+                Tile tile = tileGroup.get(0);
+                moveSingleTile(tile.getRow(), tile.getColumn(), direction, processed);
+            } else {
+                // Ordenar tiles dentro del grupo según la dirección
+                if (direction == 'S') {
+                    tileGroup.sort((t1, t2) -> t2.getRow() - t1.getRow());
+                } else { // 'N'
+                    tileGroup.sort((t1, t2) -> t1.getRow() - t2.getRow());
+                }
+    
+                // Mover el grupo completo
+                moveGluedTilesVertical(tileGroup, direction, processed);
+            }
+        }
+    }
+    
+    private void processTiltHorizontal(char direction, boolean[][] processed) {
+        int startJ = (direction == 'W') ? 0 : w-1;
+        int endJ = (direction == 'W') ? w : -1;
+        int stepJ = (direction == 'W') ? 1 : -1;
+        
+        // Primero, identificar todos los conjuntos de tiles pegadas
+        HashMap<Integer, ArrayList<Tile>> setGroups = new HashMap<>();
+        ArrayList<ArrayList<Tile>> orderedGroups = new ArrayList<>();
+        
+        // Agrupar las tiles por conjuntos y mantener el orden
+        for (int j = startJ; j != endJ; j += stepJ) {
+            for (int i = 0; i < h; i++) {
+                if (matrixStarting[i][j] != null && !processed[i][j]) {
+                    Tile tile = matrixStarting[i][j];
+                    int setId = findKeyByValue(tile.getId());
+                    
+                    if (!setGroups.containsKey(setId)) {
+                        ArrayList<Tile> newGroup = new ArrayList<>();
+                        setGroups.put(setId, newGroup);
+                        orderedGroups.add(newGroup);
+                    }
+                    
+                    ArrayList<Tile> group = setGroups.get(setId);
+                    if (!group.contains(tile)) {
+                        group.add(tile);
                     }
                 }
             }
         }
         
-        if (gluedTiles.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "Todas las baldosas se pueden mover.", 
-                                         "fixedTiles", JOptionPane.INFORMATION_MESSAGE);
-            return tilesCorrect;
+        // Procesar los grupos en el orden correcto
+        for (ArrayList<Tile> tileGroup : orderedGroups) {
+            if (tileGroup.size() == 1) {
+                // Mover tile individual
+                Tile tile = tileGroup.get(0);
+                moveSingleTile(tile.getRow(), tile.getColumn(), direction, processed);
+            } else {
+                // Ordenar tiles dentro del grupo según la dirección
+                if (direction == 'E') {
+                    tileGroup.sort((t1, t2) -> t2.getColumn() - t1.getColumn());
+                } else { // 'W'
+                    tileGroup.sort((t1, t2) -> t1.getColumn() - t2.getColumn());
+                }
+                
+                // Mover el grupo completo
+                moveGluedTilesHorizontal(tileGroup, direction, processed);
+            }
         }
-
-        // Mostrar el mensaje con las coordenadas
-        JOptionPane.showMessageDialog(null, mensaje.toString(), 
-                                     "fixedTiles", JOptionPane.INFORMATION_MESSAGE);
-
-        // Llamar al método de parpadeo
-        blinkTiles(gluedTiles);
-
-        return tilesCorrect;
+    }
+    
+    private void moveGluedTilesHorizontal(ArrayList<Tile> tileGroup, char direction, boolean[][] processed) {
+        boolean canMove = true;
+        while (canMove) {
+            // Verificar si todo el grupo puede moverse
+            boolean moveAllowed = true;
+            ArrayList<int[]> newPositions = new ArrayList<>();
+            
+            for (Tile tile : tileGroup) {
+                int currentRow = tile.getRow();
+                int currentCol = tile.getColumn();
+                int nextCol = (direction == 'E') ? currentCol + 1 : currentCol - 1;
+                
+                // Verificar límites
+                if (nextCol < 0 || nextCol >= w) {
+                    moveAllowed = false;
+                    break;
+                }
+                
+                // Verificar si hay otra tile que no sea parte del grupo
+                if (matrixStarting[currentRow][nextCol] != null) {
+                    boolean isInGroup = false;
+                    for (Tile groupTile : tileGroup) {
+                        if (groupTile.getRow() == currentRow && groupTile.getColumn() == nextCol) {
+                            isInGroup = true;
+                            break;
+                        }
+                    }
+                    if (!isInGroup) {
+                        moveAllowed = false;
+                        break;
+                    }
+                }
+                
+                newPositions.add(new int[]{currentRow, nextCol});
+            }
+            
+            if (!moveAllowed) {
+                break;
+            }
+            
+            // Mover todas las tiles del grupo
+            for (int i = 0; i < tileGroup.size(); i++) {
+                Tile tile = tileGroup.get(i);
+                int oldRow = tile.getRow();
+                int oldCol = tile.getColumn();
+                int[] newPos = newPositions.get(i);
+                
+                matrixStarting[oldRow][oldCol] = null;
+                matrixStarting[newPos[0]][newPos[1]] = tile;
+                tile.relocate(newPos[0], newPos[1]);
+                processed[newPos[0]][newPos[1]] = true;
+                processed[oldRow][oldCol] = true;
+            }
+        }
+    }
+    
+    private void moveGluedTilesVertical(ArrayList<Tile> tileGroup, char direction, boolean[][] processed) {
+        boolean canMove = true;
+        while (canMove) {
+            // Verificar si todo el grupo puede moverse
+            boolean moveAllowed = true;
+            ArrayList<int[]> newPositions = new ArrayList<>();
+    
+            for (Tile tile : tileGroup) {
+                int currentRow = tile.getRow();
+                int currentCol = tile.getColumn();
+                int nextRow = (direction == 'S') ? currentRow + 1 : currentRow - 1;
+    
+                // Verificar límites
+                if (nextRow < 0 || nextRow >= h) {
+                    moveAllowed = false;
+                    break;
+                }
+    
+                // Verificar si hay otra tile que no sea parte del grupo
+                if (matrixStarting[nextRow][currentCol] != null) {
+                    boolean isInGroup = false;
+                    for (Tile groupTile : tileGroup) {
+                        if (groupTile.getRow() == nextRow && groupTile.getColumn() == currentCol) {
+                            isInGroup = true;
+                            break;
+                        }
+                    }
+                    if (!isInGroup) {
+                        moveAllowed = false;
+                        break;
+                    }
+                }
+    
+                newPositions.add(new int[]{nextRow, currentCol});
+            }
+    
+            if (!moveAllowed) {
+                break;
+            }
+    
+            // Mover todas las tiles del grupo
+            for (int i = 0; i < tileGroup.size(); i++) {
+                Tile tile = tileGroup.get(i);
+                int oldRow = tile.getRow();
+                int oldCol = tile.getColumn();
+                int[] newPos = newPositions.get(i);
+    
+                matrixStarting[oldRow][oldCol] = null;
+                matrixStarting[newPos[0]][newPos[1]] = tile;
+                tile.relocate(newPos[0], newPos[1]);
+                processed[newPos[0]][newPos[1]] = true;
+                processed[oldRow][oldCol] = true;
+            }
+        }
+    }
+        
+    private void moveSingleTile(int row, int col, char direction, boolean[][] processed) {
+        Tile tile = matrixStarting[row][col];
+        int newRow = row;
+        int newCol = col;
+        boolean canMove = true;
+    
+        while (canMove) {
+            int nextRow = newRow;
+            int nextCol = newCol;
+    
+            // Calcular siguiente posición según la dirección
+            switch (direction) {
+                case 'N': nextRow--; break;
+                case 'S': nextRow++; break;
+                case 'W': nextCol--; break;
+                case 'E': nextCol++; break;
+            }
+    
+            // Verificar si la siguiente posición es válida
+            if (nextRow < 0 || nextRow >= h || nextCol < 0 || nextCol >= w) {
+                break; // Llegó al borde
+            }
+    
+            // Verificar si hay un hueco
+            if (holes[nextRow][nextCol] != null) {
+                // La tile se cae en el hueco
+                matrixStarting[row][col].makeInvisible();
+                matrixStarting[row][col] = null;
+                processed[row][col] = true;
+                return;
+            }
+    
+            // Verificar si hay otra tile
+            if (matrixStarting[nextRow][nextCol] != null) {
+                break; // No puede moverse más
+            }
+    
+            // Mover la tile
+            matrixStarting[nextRow][nextCol] = tile;
+            matrixStarting[newRow][newCol] = null;
+            tile.relocate(nextRow, nextCol);
+            processed[nextRow][nextCol] = true;
+            processed[newRow][newCol] = true;
+    
+            newRow = nextRow;
+            newCol = nextCol;
+        }
+    }
+    
+    private boolean contains(int[] array, int value) {
+        for (int element : array) {
+            if (element == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public void tilt() {
+        // Guardar el estado actual para poder revertirlo
+        Tile[][] originalState = new Tile[h][w];
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                originalState[i][j] = matrixStarting[i][j];
+            }
+        }
+        
+        char[] directions = {'N', 'S', 'E', 'W'};
+        int bestScore = misPlacedTiles();
+        char bestDirection = ' ';
+        
+        // Probar cada dirección y encontrar la mejor
+        for (char direction : directions) {
+            // Restaurar el estado original antes de probar cada dirección
+            for (int i = 0; i < h; i++) {
+                for (int j = 0; j < w; j++) {
+                    matrixStarting[i][j] = originalState[i][j];
+                }
+            }
+            
+            // Probar la dirección actual
+            tilt(direction);
+            int currentScore = misPlacedTiles();
+            
+            // Si esta dirección da un mejor resultado, guardarla
+            if (currentScore > bestScore) {
+                bestScore = currentScore;
+                bestDirection = direction;
+            }
+        }
+        
+        // Restaurar el estado original
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                matrixStarting[i][j] = originalState[i][j];
+            }
+        }
+        
+        // Si encontramos una dirección mejor, aplicarla
+        if (bestDirection != ' ') {
+            tilt(bestDirection);
+            String directionName = "";
+            switch (bestDirection) {
+                case 'N': directionName = "Norte"; break;
+                case 'S': directionName = "Sur"; break;
+                case 'E': directionName = "Este"; break;
+                case 'W': directionName = "Oeste"; break;
+            }
+            JOptionPane.showMessageDialog(null, "La mejor dirección es: " + directionName);
+        } else {
+            JOptionPane.showMessageDialog(null, "No se encontró una dirección que mejore la posición actual");
+        }
     }
 }
  
