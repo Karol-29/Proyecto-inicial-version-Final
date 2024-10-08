@@ -68,7 +68,7 @@ public class Tile extends Rectangle {
         setPosition(newXPosition, newYPosition);
         
          // Actualiza las propiedades visuales de la tile
-        makeVisible();  // Hace la tile visible después de moverla
+         // Hace la tile visible después de moverla
     }
 
     public void setPosition(int xPosition,int yPosition){

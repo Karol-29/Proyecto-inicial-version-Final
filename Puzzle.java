@@ -193,7 +193,7 @@ public class Puzzle extends Rectangle {
         }
     }
     
-    public void conjunto() {
+    private void conjunto() {
         for (int idTile : setTileStarting.keySet()) { 
             int[] values = setTileStarting.get(idTile);
             // Imprimir el idTile primero
@@ -262,69 +262,74 @@ public class Puzzle extends Rectangle {
         int toRow = to[0];
         int toColumn = to[1];
         Tile tilePrincipal=getTile(fromRow,fromColumn);
-        
-        // Verificar si hay una ficha en la posición de origen
-        if (tilePrincipal != null) {
-            int idTile = tilePrincipal.getId();
-            
-            if (idTile == -1) {
-                JOptionPane.showMessageDialog(null, "No hay tile para mover", "Error", JOptionPane.ERROR_MESSAGE);
-                last = false;
-                return;
-            }
-            if (holes[toRow][toColumn] != null) {
-                JOptionPane.showMessageDialog(null, "No se puede mover, hay un hueco es esta posicion.","Error",JOptionPane.ERROR_MESSAGE);
-                last = false;
-                return;
-            }
-
-            // Obtener el conjunto de fichas pegadas
-            Integer keySetTile = findKeyByValue(idTile);
-            int[] tilesInSet = setTileStarting.get(keySetTile);
+        if (fromRow >= 0 && fromRow <= h-1 && fromColumn >= 0 && fromColumn <= w-1 && toRow >= 0 && toRow <= h-1 && toColumn >= 0 && toColumn <= w-1){
+            // Verificar si hay una ficha en la posición de origen
+            if (tilePrincipal != null) {
+                int idTile = tilePrincipal.getId();
+                
+                if (idTile == -1) {
+                    JOptionPane.showMessageDialog(null, "No hay tile para mover", "Error", JOptionPane.ERROR_MESSAGE);
+                    last = false;
+                    return;
+                }
+                if (holes[toRow][toColumn] != null) {
+                    JOptionPane.showMessageDialog(null, "No se puede mover, hay un hueco es esta posicion.","Error",JOptionPane.ERROR_MESSAGE);
+                    last = false;
+                    return;
+                }
     
-            // Verificar si todas las fichas del conjunto pueden moverse
-            for (int tileId : tilesInSet) {
-                Tile tile = getTileForId(tileId);
+                // Obtener el conjunto de fichas pegadas
+                Integer keySetTile = findKeyByValue(idTile);
+                int[] tilesInSet = setTileStarting.get(keySetTile);
+        
+                // Verificar si todas las fichas del conjunto pueden moverse
+                for (int tileId : tilesInSet) {
+                    Tile tile = getTileForId(tileId);
+                    
+                    int tileRow = tile.getRow();
+                    int tileColumn = tile.getColumn();
+                    
+                    int[] newCoordinates = canMoveTile(toRow - (fromRow - tileRow), toColumn - (fromColumn - tileColumn));
+                    
+                // Verificar si hay un hueco en la nueva posición
+                    if (holes[toRow - (fromRow - tileRow)][toColumn - (fromColumn - tileColumn)] != null) {
+                    JOptionPane.showMessageDialog(null, "No se puede mover, hay un hueco en esta posición.", "Error", JOptionPane.ERROR_MESSAGE);
+                    last = false;
+                    return;
+                    }
+                    if (newCoordinates[0] == -1) {
+                        JOptionPane.showMessageDialog(null, "No se puede mover, fuera de los límites", "Error", JOptionPane.ERROR_MESSAGE);
+                        return;  // Detener el proceso si alguna ficha no puede moverse
+                    }
+                }
                 
-                int tileRow = tile.getRow();
-                int tileColumn = tile.getColumn();
-                
-                int[] newCoordinates = canMoveTile(toRow - (fromRow - tileRow), toColumn - (fromColumn - tileColumn));
-                
-            // Verificar si hay un hueco en la nueva posición
-                if (holes[toRow - (fromRow - tileRow)][toColumn - (fromColumn - tileColumn)] != null) {
-                JOptionPane.showMessageDialog(null, "No se puede mover, hay un hueco en esta posición.", "Error", JOptionPane.ERROR_MESSAGE);
+                // Si todas pueden moverse, realizar el movimiento
+                for (int tileId : tilesInSet) {
+                    Tile tile = getTileForId(tileId);
+                    tile.makeInvisible();
+                    
+                    int tileRow = tile.getRow();
+                    int tileColumn = tile.getColumn();
+                    
+                    // Mover cada ficha pegada a la nueva posición relativa
+                    tile.relocate(toRow - (fromRow - tileRow), toColumn - (fromColumn - tileColumn)); 
+                    //cambio las tiles en la matriz
+                    matrixStarting[toRow - (fromRow - tileRow)][toColumn - (fromColumn - tileColumn)]=tile;
+                    matrixStarting[tileRow][tileColumn]=null;
+                    // Actualizar las propiedades visuales de la ficha
+                    if(isVisible){
+                        tile.makeVisible();
+                    }// Hacer visible la ficha después de moverla
+                }
+      
+                last = true;  // Si todas las fichas se movieron con éxito
+            } else {
+                JOptionPane.showMessageDialog(null, "No hay tile en la posición de origen", "Error", JOptionPane.ERROR_MESSAGE);
                 last = false;
-                return;
-                }
-                if (newCoordinates[0] == -1) {
-                    JOptionPane.showMessageDialog(null, "No se puede mover, fuera de los límites", "Error", JOptionPane.ERROR_MESSAGE);
-                    return;  // Detener el proceso si alguna ficha no puede moverse
-                }
             }
-            
-            // Si todas pueden moverse, realizar el movimiento
-            for (int tileId : tilesInSet) {
-                Tile tile = getTileForId(tileId);
-                tile.makeInvisible();
-                
-                int tileRow = tile.getRow();
-                int tileColumn = tile.getColumn();
-                
-                // Mover cada ficha pegada a la nueva posición relativa
-                tile.relocate(toRow - (fromRow - tileRow), toColumn - (fromColumn - tileColumn)); 
-                //cambio las tiles en la matriz
-                matrixStarting[toRow - (fromRow - tileRow)][toColumn - (fromColumn - tileColumn)]=tile;
-                matrixStarting[tileRow][tileColumn]=null;
-                // Actualizar las propiedades visuales de la ficha
-                
-                tile.makeVisible();  // Hacer visible la ficha después de moverla
-            }
-  
-            last = true;  // Si todas las fichas se movieron con éxito
-        } else {
-            JOptionPane.showMessageDialog(null, "No hay tile en la posición de origen", "Error", JOptionPane.ERROR_MESSAGE);
-            last = false;
+        }else{
+            JOptionPane.showMessageDialog(null, "Fuera de los limites", "Error", JOptionPane.ERROR_MESSAGE);
+            last=false;
         }
     }
 
@@ -582,12 +587,14 @@ public class Puzzle extends Rectangle {
         // Verificar si la posición está dentro de los límites del puzzle
         if (row < 0 || row >= h || column < 0 || column >= w) {
             JOptionPane.showMessageDialog(null, "Fuera de límites", "Error", JOptionPane.ERROR_MESSAGE);
+            last=false;
             return;
         }
     
         // Verificar que la posición contenga una tile
         if (matrixStarting[row][column] == null) {
             JOptionPane.showMessageDialog(null, "No hay tile en la posición dada", "Error", JOptionPane.ERROR_MESSAGE);
+            last=false;
             return;
         }
     
@@ -596,31 +603,23 @@ public class Puzzle extends Rectangle {
         int idTile = tilePrincipal.getId(); // Obtener el ID de la tile
         int idConjunto = findKeyByValue(idTile); // Obtener el ID del conjunto donde está la tile
         int[] conjunto = setTileStarting.get(idConjunto); // Obtener las tiles del conjunto
-        System.out.println(idTile+"principal");
+        
         // Si solo hay una tile en el conjunto, no hay nada que separar
         if (conjunto.length <= 1) {
             JOptionPane.showMessageDialog(null, "No hay baldosas pegadas", "Error", JOptionPane.ERROR_MESSAGE);
+            last=false;
             return;
         }
     
         // Separar las tiles actuales creando conjuntos individuales para cada tile
         for (int id : conjunto) {
-            System.out.println(id);
+            
             setTileStarting.put(id, new int[]{id}); // Cada tile ahora está en su propio conjunto
         }
     
         // Buscar pares adyacentes que no incluyen el tile seleccionado y volverlos a pegar
         List<int[]> adjacentPairs = findAdjacentPairs(idTile, conjunto);
-        for (int[] pair : adjacentPairs) {
-            System.out.print("Pair: ");
-            
-            // Recorremos los elementos del int[]
-            for (int id : pair) {
-                System.out.print(id + " ");
-            }
-            
-            System.out.println(); // Salto de línea después de imprimir cada par
-        }
+        
 
         for (int[] array : adjacentPairs) {
             // Si ambos tiles no incluyen el idTile, los volvemos a pegar
@@ -628,7 +627,7 @@ public class Puzzle extends Rectangle {
                 addGlueSecond(array[0], array[1]);
             }
         }
-    
+        last=true;
         // Mostrar mensaje de éxito
         JOptionPane.showMessageDialog(null, "Las tiles adyacentes han sido separadas", "Info", JOptionPane.INFORMATION_MESSAGE);
     }
@@ -682,7 +681,7 @@ public class Puzzle extends Rectangle {
 
         return tilesCorrect;
     }
-    public List<int[]> findAdjacentPairs(int idTile, int[] conjunto) {
+    private List<int[]> findAdjacentPairs(int idTile, int[] conjunto) {
         List<int[]> adjacentPairs = new ArrayList<>(); // Lista para almacenar las parejas adyacentes
         Set<String> seenPairs = new HashSet<>(); // Conjunto para rastrear pares vistos
     
@@ -734,7 +733,7 @@ public class Puzzle extends Rectangle {
         }    
         return adjacentPairs;
     }
-    public void addGlueSecond(int idTile1, int idTile2){
+    private void addGlueSecond(int idTile1, int idTile2){
         Tile tile1=getTileForId(idTile1);
         Tile tile2=getTileForId(idTile2);
         boolean areAdyacent=areTilesAdjacent(idTile1,idTile2);
