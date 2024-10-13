@@ -170,8 +170,8 @@ public class Puzzle extends Rectangle {
                     setTileStarting.put(setTileA, new int[]{});
                     setTileStarting.put(nombreConjunto, nuevoConjunto);
                     if(tile.getRow()==tilePrincipal.getRow()){
-                        int maximo=Math.max(tile.getRow(),tilePrincipal.getRow());
-                        Line line=new Line(maximo,tile.getColumn(),maximo-50,tile.getColumn());
+                        int maximo=Math.max(tile.getYPosition(),tilePrincipal.getYPosition());
+                        Line line=new Line(maximo,tile.getXPosition(),maximo-50,tile.getXPosition());
                         glues.add(line);
                         if(isVisible){
                             line.makeVisible();
@@ -193,7 +193,7 @@ public class Puzzle extends Rectangle {
         }
     }
     
-    private void conjunto() {
+    public void conjunto() {
         for (int idTile : setTileStarting.keySet()) { 
             int[] values = setTileStarting.get(idTile);
             // Imprimir el idTile primero
@@ -553,35 +553,51 @@ public class Puzzle extends Rectangle {
     }
     
     
-    public void deleteTile(int row,int column){
+    public void deleteTile(int row, int column) {
+        // Verificar si la posición está dentro de los límites del puzzle
         if (row < 0 || row >= h || column < 0 || column >= w) {
-            JOptionPane.showMessageDialog(null, "La posición está fuera de los límites.","Error",JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "La posición está fuera de los límites.", "Error", JOptionPane.ERROR_MESSAGE);
             last = false;
             return;
         }
-        Tile tile=getTile(row,column);
+    
+        // Verificar si es un hueco
         if (holes[row][column] != null) {
-            JOptionPane.showMessageDialog(null, "Es un hueco","Error",JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Es un hueco", "Error", JOptionPane.ERROR_MESSAGE);
             last = false;
             return;
         }
+    
+        // Obtener la tile en la posición dada
+        Tile tile = getTile(row, column);
         if (tile == null) {
-            JOptionPane.showMessageDialog(null, "No hay tile para eliminar.","Error",JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "No hay tile para eliminar.", "Error", JOptionPane.ERROR_MESSAGE);
             last = false;
             return;
         }
-        int idTile=tile.getId();
-        int idConjunto=findKeyByValue(idTile);
-        int [] conjunto=setTileStarting.get(idConjunto);
-        if (conjunto.length < 1) {
-            JOptionPane.showMessageDialog(null, "No se eliminar una tile pegada.","Error",JOptionPane.ERROR_MESSAGE);
+    
+        int idTile = tile.getId();
+        int idConjunto = findKeyByValue(idTile); // Obtener el ID del conjunto donde está la tile
+        int[] conjunto = setTileStarting.get(idConjunto); // Obtener las tiles del conjunto
+    
+        // Verificar si el conjunto tiene más de una tile (pegadas)
+        if (conjunto == null || conjunto.length < 1) {
+            JOptionPane.showMessageDialog(null, "No se puede eliminar una tile pegada.", "Error", JOptionPane.ERROR_MESSAGE);
             last = false;
             return;
         }
+    
+        // Hacer la tile invisible y eliminarla del tablero
         matrixStarting[row][column].makeInvisible();
         matrixStarting[row][column] = null;
+    
+        // Eliminar el conjunto de tiles del mapa
         setTileStarting.remove(idConjunto);
+    
+        // Operación exitosa
+        last = true;
     }
+
     
     public void deleteGlue(int row, int column) {
         // Verificar si la posición está dentro de los límites del puzzle
@@ -609,7 +625,7 @@ public class Puzzle extends Rectangle {
             JOptionPane.showMessageDialog(null, "No hay baldosas pegadas", "Error", JOptionPane.ERROR_MESSAGE);
             last=false;
             return;
-        }
+        }else{
     
         // Separar las tiles actuales creando conjuntos individuales para cada tile
         for (int id : conjunto) {
@@ -630,6 +646,7 @@ public class Puzzle extends Rectangle {
         last=true;
         // Mostrar mensaje de éxito
         JOptionPane.showMessageDialog(null, "Las tiles adyacentes han sido separadas", "Info", JOptionPane.INFORMATION_MESSAGE);
+    }
     }
 
     public int[][] fixedTiles() {
