@@ -5,7 +5,6 @@ public class PuzzleContest
 {
     // instance variables - replace the example below with your own
     private Puzzle puzzle;
-    private char[][] starting;
     private char[][] ending;
     private Stack<char[][]> steps; //para que se respete el orden de inserccion
     private boolean solve;
@@ -20,7 +19,7 @@ public class PuzzleContest
         this.solve=false;
     }
 
-    public boolean solve(char[][] ending,char[][] starting){
+    public boolean solve(char[][] starting,char[][] ending){
         puzzle= new Puzzle(ending,starting);
         this.ending=ending;
         //falta logica
@@ -28,13 +27,13 @@ public class PuzzleContest
         return solve;
     }
     
-    public void simulate(char[][] ending,char[][] starting){
+    public void simulate(char[][] starting,char[][] ending){
         this.solve=solve(ending,starting);
         if(!solve){
             JOptionPane.showMessageDialog(null, "No se puede resolver con estas configuraciones", "Error", JOptionPane.ERROR_MESSAGE);
         }else{
             for (char[][] matrix : steps) {
-                puzzle=new Puzzle(ending,matrix);
+                puzzle=new Puzzle(this.ending,matrix);
                 puzzle.makeVisible();
             }
         }
